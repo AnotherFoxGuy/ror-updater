@@ -22,7 +22,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows;
-using Ipfs.Engine;
 
 namespace ror_updater
 {
@@ -64,28 +63,26 @@ namespace ror_updater
         }
     }
 
-    public sealed class SIpfsEngine
+    class DownloadHelper
     {
-        const string passphrase = "this is not a secure pass phrase";
-        private static readonly Lazy<SIpfsEngine> lazy = new Lazy<SIpfsEngine>(() => new SIpfsEngine());
+        private static readonly Lazy<DownloadHelper> Lazy = new Lazy<DownloadHelper>(() => new DownloadHelper());
 
-        public static SIpfsEngine Instance => lazy.Value;
+        public static DownloadHelper Instance => Lazy.Value;
+        private WebClient _webClient;
 
-        public IpfsEngine Engine { get; }
-
-        private SIpfsEngine()
+        private DownloadHelper()
         {
-            Engine = new IpfsEngine(passphrase.ToCharArray());
-            // Set the repository
-            Engine.Options.Repository.Folder = Path.Combine(Path.GetTempPath(), "ror-updater");
-
-            // Start the engine.
-            Engine.StartAsync().Wait();
+            _webClient = new WebClient();
         }
 
-        public void Init()
+        public void DownloadFile(string uri, string dest)
         {
-            Utils.LOG("Starting IpfsEngine");
+            _webClient.DownloadFile(uri, dest);
+        }
+        
+        public string DownloadString(string uri)
+        {
+            return _webClient.DownloadString(uri);
         }
     }
 }

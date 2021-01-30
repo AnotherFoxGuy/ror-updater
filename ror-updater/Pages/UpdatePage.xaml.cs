@@ -210,14 +210,7 @@ namespace ror_updater
             {
                 Utils.LOG($"Info| ULR: {dlLink}");
                 Utils.LOG($"Info| File: {dest}");
-                //_webClient.DownloadFile(new Uri(dlLink), dest);
-
-                using (var stream = await SIpfsEngine.Instance.Engine.FileSystem.ReadFileAsync(dlLink))
-                {
-                    var fileStream = new FileStream(dest, FileMode.Create, FileAccess.Write);
-                    await stream.CopyToAsync(fileStream);
-                    fileStream.Dispose();
-                }
+                DownloadHelper.Instance.DownloadFile(dlLink, dest);
             }
             catch (Exception ex)
             {

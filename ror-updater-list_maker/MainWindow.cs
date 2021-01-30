@@ -40,8 +40,6 @@ namespace ror_updater_list_maker
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (File.Exists("./redist/info.json"))
-                File.Delete("./redist/info.json");
             var filePaths = Directory.GetFiles(basepath, "*.*", SearchOption.AllDirectories);
             label1.Text = "0/" + filePaths.Length;
             progressBar1.Maximum = filePaths.Length;
@@ -73,13 +71,13 @@ namespace ror_updater_list_maker
             }
 
             var versionInfo = FileVersionInfo.GetVersionInfo("redist/RoR.exe");
-            var str_local_version = versionInfo.ProductVersion;
+            var strLocalVersion = versionInfo.ProductVersion;
 
 
             File.WriteAllText("./redist/info.json", JsonConvert.SerializeObject(
                 new ReleaseInfo
                 {
-                    Version = str_local_version,
+                    Version = strLocalVersion,
                     Filelist = _filelist
                 }
             ));

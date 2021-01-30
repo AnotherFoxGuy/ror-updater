@@ -60,9 +60,6 @@ namespace ror_updater
 
         private string _localUpdaterVersion;
 
-        private WebClient _webClient;
-
-
         public void InitApp(object sender, StartupEventArgs e)
         {
             File.WriteAllText(@"./Updater_log.txt", "");
@@ -70,17 +67,12 @@ namespace ror_updater
             //Show something so users don't get confused
             _initDialog.DoWork += InitDialog_DoWork;
             _initDialog.RunWorkerAsync();
-            
-            Utils.LOG("Info| Creating IpfsEngine");
-            SIpfsEngine.Instance.Init();
 
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             _localUpdaterVersion = fileVersionInfo.ProductVersion;
             Utils.LOG($"Info| Updater version: {_localUpdaterVersion}");
 
-            Utils.LOG("Info| Creating Web Handler");
-            _webClient = new WebClient();
             Utils.LOG("Info| Done.");
 
             Utils.LOG("Info| Creating INI handler");
@@ -123,16 +115,11 @@ namespace ror_updater
 
             try
             {
-                var brjson = _webClient.DownloadString($"{ServerUrl}/branches.json");
+                var brjson = DownloadHelper.Instance.DownloadString($"{ServerUrl}/branches.json");
                 branchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
                 SelectedBranch = branchInfo.Branches[0];
 
-                var t = SIpfsEngine.Instance.Engine.FileSystem.ReadAllTextAsync(SelectedBranch.Hash);
-                t.Wait();
-
-                var dat = t.Result;
-                
-                Utils.LOG($"DATA: {dat}");
+                var dat = DownloadHelper.Instance.DownloadString(SelectedBranch.Hash);
 
                 ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
 
@@ -188,8 +175,8 @@ namespace ror_updater
         {
             _bSelfUpdating = true;
 
-            _webClient.DownloadFile(ServerUrl + "ror-updater_new.exe", @"./ror-updater_new.exe");
-            _webClient.DownloadFile(ServerUrl + "ror-updater_selfupdate.exe", @"./ror-updater_selfupdate.exe");
+            DownloadHelper.Instance.DownloadFile(ServerUrl + "ror-updater_new.exe", @"./ror-updater_new.exe");
+            DownloadHelper.Instance.DownloadFile(ServerUrl + "ror-updater_selfupdate.exe", @"./ror-updater_selfupdate.exe");
             
             Thread.Sleep(100); //Wait a bit
             Process.Start(@"./ror-updater_selfupdate.exe");
