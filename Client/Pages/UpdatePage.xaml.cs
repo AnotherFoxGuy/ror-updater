@@ -43,7 +43,7 @@ namespace ror_updater
 
             _webClient = new WebClient();
 
-            OverallProgress.Maximum = App.FilesInfo.Count;
+            OverallProgress.Maximum = App.Instance.ReleaseInfoData.Filelist.Count;
             _webClient.DownloadProgressChanged += ProgressChanged;
 
             RunFileUpdate();
@@ -57,7 +57,7 @@ namespace ror_updater
             var progress = new Progress<int>(fileid =>
             {
                 OverallProgress.Value = fileid;
-                ProgressLabel.Content = fileid + "/" + App.FilesInfo.Count;
+                ProgressLabel.Content = fileid + "/" + App.Instance.ReleaseInfoData.Filelist.Count;
             });
 
             // DoProcessing is run on the thread pool.
@@ -65,76 +65,75 @@ namespace ror_updater
             {
                 case UpdateChoice.INSTALL:
                     Welcome_Label.Content = "Installing Rigs of Rods";
-                    await Task.Run(() => InstallGame(progress));
+                    await InstallGame(progress);
                     break;
                 case UpdateChoice.UPDATE:
                     Welcome_Label.Content = "Updating Rigs of Rods";
-                    await Task.Run(() => UpdateGame(progress));
+                    await UpdateGame(progress);
                     break;
                 case UpdateChoice.REPAIR:
                     Welcome_Label.Content = "Repairing Rigs of Rods";
-                    await Task.Run(() => UpdateGame(progress));
+                    await UpdateGame(progress);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        private void InstallGame(IProgress<int> progress)
+        private async Task InstallGame(IProgress<int> progress)
         {
             Utils.LOG("Info| Installing Game...");
 
-            for (var i = 0; i < App.FilesInfo.Count; i++)
+            var i = 0;
+            foreach (var file in App.Instance.ReleaseInfoData.Filelist)
             {
-                var file = App.FilesInfo[i];
-                AddToLogFile($"Downloading file: {file.directory.TrimStart('.')}/{file.fileName}");
-                DownloadFile(file.dlLink, file.directory, file.fileName);
-                progress?.Report(i);
+                AddToLogFile($"Downloading file: {file.Directory.TrimStart('.')}/{file.Name}");
+                await DownloadFile(file.Directory, file.Name);
+                progress?.Report(i++);
             }
 
             Utils.LOG("Info| Done.");
             NextPage();
         }
 
-        private void UpdateGame(IProgress<int> progress)
+        private async Task UpdateGame(IProgress<int> progress)
         {
             Utils.LOG("Info| Updating Game...");
 
-            var _fileStatus = new List<FileStatus>();
+            var fileStatus = new List<FileStatus>();
 
             AddToLogFile($"Checking for outdated files...");
-            for (var i = 0; i < App.FilesInfo.Count; i++)
+            var i = 0;
+            foreach (var file in App.Instance.ReleaseInfoData.Filelist)
             {
-                var file = App.FilesInfo[i];
                 var fs = HashFile(file);
-                AddToLogFile($"Checking file: {file.directory.TrimStart('.')}/{file.fileName}");
-                _fileStatus.Add(new FileStatus {File = file, Status = fs});
-                progress?.Report(i);
+                AddToLogFile($"Checking file: {file.Directory.TrimStart('.')}/{file.Name}");
+                fileStatus.Add(new FileStatus {File = file, Status = fs});
+                progress?.Report(i++);
             }
 
             AddToLogFile($"Done, updating outdated files now...");
-
-            for (var i = 0; i < _fileStatus.Count; i++)
+            i = 0;
+            foreach (var item in fileStatus)
             {
-                var item = _fileStatus[i];
-                progress?.Report(i);
+                progress?.Report(i++);
 
                 switch (item.Status)
                 {
                     case HashResult.UPTODATE:
-                        Utils.LOG($"Info| file up to date:{item.File.fileName}");
-                        AddToLogFile($"File up to date: {item.File.directory.TrimStart('.')}/{item.File.fileName}");
+                        Utils.LOG($"Info| file up to date:{item.File.Name}");
+                        AddToLogFile($"File up to date: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
                         break;
                     case HashResult.OUTOFDATE:
-                        AddToLogFile($"File out of date: {item.File.directory.TrimStart('.')}/{item.File.fileName}");
-                        Utils.LOG($"Info| File out of date:{item.File.fileName}");
-                        DownloadFile(item.File.dlLink, item.File.directory, item.File.fileName);
+                        AddToLogFile($"File out of date: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
+                        Utils.LOG($"Info| File out of date:{item.File.Name}");
+                        await DownloadFile(item.File.Directory, item.File.Name);
                         break;
                     case HashResult.NOT_FOUND:
-                        Utils.LOG($"Info| File doesnt exits:{item.File.fileName}");
+                        Utils.LOG($"Info| File doesnt exits:{item.File.Name}");
                         AddToLogFile(
-                            $"Downloading new file: {item.File.directory.TrimStart('.')}/{item.File.fileName}");
-                        DownloadFile(item.File.dlLink, item.File.directory, item.File.fileName);
+                            $"Downloading new file: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
+                       await DownloadFile(item.File.Directory, item.File.Name);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -183,34 +182,35 @@ namespace ror_updater
                 LogWindow.ScrollIntoView(e.NewItems[0]);
         }
 
-        HashResult HashFile(RoRUpdaterItem item)
+        HashResult HashFile(PFileInfo item)
         {
             string sFileHash = null;
-            var filePath = $"{item.directory}/{item.fileName}";
+            var filePath = $"{item.Directory}/{item.Name}";
 
-            Utils.LOG($"Info| Checking file: {item.fileName}");
+            Utils.LOG($"Info| Checking file: {item.Name}");
 
             if (!File.Exists(filePath)) return HashResult.NOT_FOUND;
             sFileHash = Utils.GetFileHash(filePath);
-            Utils.LOG($"Info| {item.fileName} Hash: Local: {sFileHash.ToLower()} Online:{item.fileHash.ToLower()}");
-            return sFileHash.ToLower().Equals(item.fileHash.ToLower())
+            Utils.LOG($"Info| {item.Name} Hash: Local: {sFileHash.ToLower()} Online:{item.Hash.ToLower()}");
+            return sFileHash.ToLower().Equals(item.Hash.ToLower())
                 ? HashResult.UPTODATE
                 : HashResult.OUTOFDATE;
         }
 
-        private void DownloadFile(string dlLink, string dir, string file)
+        private async Task DownloadFile(string dir, string file)
         {
             if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
             Thread.Sleep(100);
             var dest = $"{dir}/{file}";
+            var dlLink = $"{App.Instance.SelectedBranch.Hash}/{file}";
 
             try
             {
                 Utils.LOG($"Info| ULR: {dlLink}");
                 Utils.LOG($"Info| File: {dest}");
-                _webClient.DownloadFile(new Uri(dlLink), dest);
+                _webClient.DownloadFileAsync(new Uri(dlLink), dest);
             }
             catch (Exception ex)
             {
@@ -223,7 +223,7 @@ namespace ror_updater
 
         private class FileStatus
         {
-            public RoRUpdaterItem File;
+            public PFileInfo File;
             public HashResult Status;
         }
 

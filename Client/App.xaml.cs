@@ -24,6 +24,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using IniParser;
 using IniParser.Model;
@@ -36,47 +37,43 @@ namespace ror_updater
     /// </summary>
     public partial class App : Application
     {
-        public static string StrServerUrl = "https://a-random-vps.cf/";
-        public static List<RoRUpdaterItem> FilesInfo;
+        public static string ServerUrl = "https://vps.anotherfoxguy.com";
+        public ReleaseInfo ReleaseInfoData;
+        public Branch SelectedBranch;
 
         public static UpdateChoice Choice;
-        
+
         private bool _bInit;
         private bool _bSkipUpdates;
+        private bool _bSelfUpdating;
 
         private BackgroundWorker _initDialog = new BackgroundWorker();
 
-        private string _jsonInfoFile;
-
         private PageSwitcher _pageSwitcher;
+        
+        private WebClient _webClient;
 
         private StartupForm _sForm;
-        private string _downloadLink;
 
         private FileIniDataParser _iniDataParser;
         private IniData _iniSettingsData;
 
-        public string StrLocalVersion;
-        public string StrOnlineVersion = "0";
-        private string _strUpdaterOnlineVersion;
+        public string LocalVersion;
 
-        private string _strUpdaterVersion;
-
-        private WebClient _webClient;
-
+        private string _localUpdaterVersion;
 
         public void InitApp(object sender, StartupEventArgs e)
         {
             File.WriteAllText(@"./Updater_log.txt", "");
-            
+
             //Show something so users don't get confused
             _initDialog.DoWork += InitDialog_DoWork;
             _initDialog.RunWorkerAsync();
 
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-            _strUpdaterVersion = fileVersionInfo.ProductVersion;
-            Utils.LOG($"Info| Updater version: {_strUpdaterVersion}");
+            _localUpdaterVersion = fileVersionInfo.ProductVersion;
+            Utils.LOG($"Info| Updater version: {_localUpdaterVersion}");
 
             Utils.LOG("Info| Creating Web Handler");
             _webClient = new WebClient();
@@ -116,72 +113,52 @@ namespace ror_updater
             MessageBoxResult result;
 
             //Download list
-            Utils.LOG($"Info| Downloading main list from server: {StrServerUrl}fileList");
+            Utils.LOG($"Info| Downloading main list from server: {ServerUrl}/branches.json");
+
+            BranchInfo branchInfo = null;
 
             try
             {
-                _jsonInfoFile = _webClient.DownloadString($"{StrServerUrl}fileList");
+                var brjson = _webClient.DownloadString($"{ServerUrl}/branches.json");
+                branchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
+                SelectedBranch = branchInfo.Branches[0];
 
-                var jsonVersionInfo = _webClient.DownloadString($"{StrServerUrl}version");
-                var versionInfo = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonVersionInfo);
+                var dat = _webClient.DownloadString(SelectedBranch.Hash);
 
-                if (!versionInfo.TryGetValue("Updater", out _strUpdaterOnlineVersion) ||
-                    !versionInfo.TryGetValue("UpdaterDL", out _downloadLink) ||
-                    !versionInfo.TryGetValue("RoRVersion", out StrOnlineVersion))
-                    throw new ApplicationException("Failed to get Versioninfo.");
-                
+                ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
 
-                Utils.LOG($"Info| Updater: {_strUpdaterOnlineVersion}");
-                Utils.LOG($"Info| Rigs-of-Rods: {StrOnlineVersion}");
+                Utils.LOG($"Info| Updater: {branchInfo.UpdaterVersion}");
+                Utils.LOG($"Info| Rigs-of-Rods: {ReleaseInfoData.Version}");
                 Utils.LOG("Info| Done.");
             }
             catch (Exception ex)
             {
+                Utils.LOG(ex.ToString());
                 result = MessageBox.Show("Could not connect to the main server.", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 if (result == MessageBoxResult.OK)
                 {
                     Utils.LOG("Error| Failed to connect to server.");
-                    Utils.LOG(ex.ToString());
                     Quit();
                 }
             }
 
-
-            if (_strUpdaterVersion != _strUpdaterOnlineVersion && !_bSkipUpdates)
+            if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
                 ProcessSelfUpdate();
 
             Thread.Sleep(10); //Wait a bit
-
-            Utils.LOG("Info| Reading file...");
-
-            try
-            {
-                FilesInfo = JsonConvert.DeserializeObject<List<RoRUpdaterItem>>(_jsonInfoFile);
-            }
-            catch (Exception ex)
-            {
-                result = MessageBox.Show("Could not read file.", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                if (result == MessageBoxResult.OK)
-                {
-                    Utils.LOG("Error| Failed to read file.");
-                    Utils.LOG(ex.ToString());
-                    Quit();
-                }
-            }
-
+            
             try
             {
                 //Use Product version instead of file version because we can use it to separate Dev version from release versions, same for TestBuilds
                 var versionInfo = FileVersionInfo.GetVersionInfo("RoR.exe");
-                StrLocalVersion = versionInfo.ProductVersion;
+                LocalVersion = versionInfo.ProductVersion;
 
-                Utils.LOG("Info| local RoR ver: " + StrLocalVersion);
+                Utils.LOG("Info| local RoR ver: " + LocalVersion);
             }
             catch
             {
-                StrLocalVersion = "unknown";
+                LocalVersion = "unknown";
 
                 Utils.LOG("Info| Game Not found!");
             }
@@ -198,20 +175,15 @@ namespace ror_updater
             _pageSwitcher.Activate();
         }
 
-        private void ProcessSelfUpdate()
+        void ProcessSelfUpdate()
         {
-            var result = MessageBox.Show("New version available.", "Update", MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            if (result != MessageBoxResult.OK) return;
-            Utils.LOG($"Update| New version available: {_strUpdaterOnlineVersion}");
-            try
-            {
-                Process.Start(_downloadLink);
-            }
-            catch
-            {
-                // ignored
-            }
+            _bSelfUpdating = true;
+
+            _webClient.DownloadFile(ServerUrl + "ror-updater_new.exe", @"./ror-updater_new.exe");
+            _webClient.DownloadFile(ServerUrl + "ror-updater_selfupdate.exe", @"./ror-updater_selfupdate.exe");
+            
+            Thread.Sleep(100); //Wait a bit
+            Process.Start(@"./ror-updater_selfupdate.exe");
 
             Quit();
         }
@@ -232,14 +204,15 @@ namespace ror_updater
             {
                 //meh?
                 Thread.Sleep(500);
-
+                if(_bSelfUpdating)
+                    _sForm.label1.Text = "Updating...";
                 _sForm.Update();
             }
 
             _sForm.Hide();
             _sForm = null;
         }
-        
+
         #region Singleton
 
         private static Lazy<App> _lazyApp;
@@ -252,14 +225,6 @@ namespace ror_updater
         }
 
         #endregion
-    }
-
-    public class RoRUpdaterItem
-    {
-        public string directory;
-        public string fileHash;
-        public string fileName;
-        public string dlLink;
     }
 
     public enum UpdateChoice

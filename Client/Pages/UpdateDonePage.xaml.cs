@@ -29,7 +29,7 @@ namespace ror_updater
         public UpdateDonePage()
         {
             InitializeComponent();
-            App.Instance.StrLocalVersion = App.Instance.StrOnlineVersion;
+            App.Instance.LocalVersion = App.Instance.ReleaseInfoData.Version;
         }
 
         #region ISwitchable Members

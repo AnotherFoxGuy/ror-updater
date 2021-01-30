@@ -49,7 +49,7 @@ namespace ror_updater_list_maker
                 Thread.Sleep(10);
 
                 var fileInfo = new FileInfo(fileName);
-                var fileD = fileInfo.Directory.ToString();
+                var fileD = fileInfo.Directory?.ToString();
                 var s = fileD.Substring(fileD.LastIndexOf((char) 92 + "redist") + 1);
                 s = s.Replace("redist", ".");
                 s = s.Replace("" + (char) 92, "/");

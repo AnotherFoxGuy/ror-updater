@@ -26,7 +26,6 @@ namespace ror_updater
     /// </summary>
     public partial class BlankPage : UserControl, ISwitchable
     {
-
         public BlankPage()
         {
             InitializeComponent();

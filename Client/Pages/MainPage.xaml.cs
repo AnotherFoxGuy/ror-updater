@@ -29,8 +29,8 @@ namespace ror_updater
         public MainPage()
         {
             InitializeComponent();
-            local_version.Content = "Local version: " + App.Instance.StrLocalVersion;
-            online_version.Content = "Online version: " + App.Instance.StrOnlineVersion;
+            local_version.Content = "Local version: " + App.Instance.LocalVersion;
+            online_version.Content = "Online version: " + App.Instance.ReleaseInfoData.Version;
         }
 
         #region ISwitchable Members

@@ -26,7 +26,6 @@ namespace ror_updater
     /// </summary>
     public partial class ChoicePage : UserControl, ISwitchable
     {
-
         public ChoicePage()
         {
             InitializeComponent();
@@ -34,14 +33,14 @@ namespace ror_updater
 
             //Repair game is also update game, both do the same, both do their work.
 
-            if (App.Instance.StrLocalVersion == "unknown")
+            if (App.Instance.LocalVersion == "unknown")
             {
                 info_label.Content = "No game found";
                 Update_button.IsEnabled = false;
                 Repair_button.IsEnabled = false;
                 Install_button.IsEnabled = true;
             }
-            else if (App.Instance.StrLocalVersion != App.Instance.StrOnlineVersion)
+            else if (App.Instance.LocalVersion != App.Instance.ReleaseInfoData.Version)
             {
                 info_label.Content = "Your game is out of date!";
                 Update_button.IsEnabled = true;

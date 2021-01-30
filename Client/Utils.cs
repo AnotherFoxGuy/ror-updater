@@ -53,8 +53,8 @@ namespace ror_updater
             LOG(ex.ToString());
 
             File.Delete("updater.ini");
-            
-            new WebClient().DownloadFile(App.StrServerUrl + "updater.ini", @"./updater.ini");
+
+            new WebClient().DownloadFile(App.ServerUrl + "/updater.ini", @"./updater.ini");
 
             MessageBox.Show("Please restart the updater!");
 
