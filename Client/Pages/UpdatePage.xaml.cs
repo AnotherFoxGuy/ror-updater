@@ -100,21 +100,21 @@ namespace ror_updater
         {
             Utils.LOG("Info| Updating Game...");
 
-            var fileStatus = new List<FileStatus>();
+            var filesStatus = new List<FileStatus>();
 
             AddToLogFile($"Checking for outdated files...");
             var i = 0;
             foreach (var file in App.Instance.ReleaseInfoData.Filelist)
             {
-                var fs = HashFile(file);
+                var fileStatus = await Task.Run(() => HashFile(file));
                 AddToLogFile($"Checking file: {file.Directory.TrimStart('.')}/{file.Name}");
-                fileStatus.Add(new FileStatus {File = file, Status = fs});
+                filesStatus.Add(new FileStatus {File = file, Status = fileStatus});
                 progress?.Report(i++);
             }
 
-            AddToLogFile($"Done, updating outdated files now...");
+            AddToLogFile("Done, updating outdated files now...");
             i = 0;
-            foreach (var item in fileStatus)
+            foreach (var item in filesStatus)
             {
                 progress?.Report(i++);
 

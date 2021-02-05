@@ -199,7 +199,7 @@ namespace ror_updater
 
             File.Delete("updater.ini");
 
-            new WebClient().DownloadFile(ServerUrl + "/updater.ini", @"./updater.ini");
+            _webClient.DownloadFile(ServerUrl + "/updater.ini", @"./updater.ini");
 
             MessageBox.Show("Please restart the updater!");
 
@@ -217,8 +217,7 @@ namespace ror_updater
             // Very dirty way to do this. :/
             _sForm = new StartupForm();
             _sForm.Show();
-
-
+            
             while (!_bInit)
             {
                 //meh?
