@@ -147,8 +147,8 @@ namespace ror_updater
                 }
             }
 
-            //if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
-            //   ProcessSelfUpdate();
+            if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
+                ProcessSelfUpdate();
 
             Thread.Sleep(10); //Wait a bit
 
@@ -183,11 +183,20 @@ namespace ror_updater
         {
             _bSelfUpdating = true;
 
-            _webClient.DownloadFile(ServerUrl + "ror-updater_new.exe", @"./ror-updater_new.exe");
-            _webClient.DownloadFile(ServerUrl + "ror-updater_selfupdate.exe", @"./ror-updater_selfupdate.exe");
+            try
+            {
+                _webClient.DownloadFile(ServerUrl + "/ror-updater-selfupdate.exe", @"./ror-updater-selfupdate.exe");
+                _webClient.DownloadFile(ServerUrl + "/patch.zip", $"{Path.GetTempPath()}/patch.zip");
 
-            Thread.Sleep(100); //Wait a bit
-            Process.Start(@"./ror-updater_selfupdate.exe");
+                Thread.Sleep(100); //Wait a bit
+                Process.Start(@"./ror-updater-selfupdate.exe");
+            }
+            catch (Exception ex)
+            {
+                Utils.LOG(ex.ToString());
+                MessageBox.Show("SelfUpdate error", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
 
             Quit();
         }
@@ -217,7 +226,7 @@ namespace ror_updater
             // Very dirty way to do this. :/
             _sForm = new StartupForm();
             _sForm.Show();
-            
+
             while (!_bInit)
             {
                 //meh?

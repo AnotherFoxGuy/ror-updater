@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ror-updater", "Client\ror-u
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "selfupdate", "SelfUpdater\selfupdate.csproj", "{62B2E856-8019-48C9-9EEF-BA799F90A154}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "list-generator", "list-generator\list-generator.csproj", "{8B0C3EE6-2885-4EED-A585-FE67BA110D24}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "list-generator", "ListGenerator\list-generator.csproj", "{8B0C3EE6-2885-4EED-A585-FE67BA110D24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,29 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
+﻿using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Threading;
 
+var tmp = $"{Path.GetTempPath()}/ror-updater";
+var dest = Directory.GetCurrentDirectory();
+var zipPath = $"{Path.GetTempPath()}/patch.zip";
 
 Thread.Sleep(100); //Sleep a bit before doing anything
-if(File.Exists("ror-updater_new.exe"))
+if (File.Exists(zipPath))
 {
-    File.Delete("ror-updater.exe");
-    try 
-    {
-        File.Replace("ror-updater_new.exe", "ror-updater.exe", "ror-updater.bak"); 
-    }
-    catch (Exception ex)
-    {
-        //Fall back
-        if (File.Exists("ror-updater.exe"))
-            File.Move("ror-updater.exe", "ror-updater.bak");
+    Directory.CreateDirectory(tmp);
+    ZipFile.ExtractToDirectory(zipPath, tmp);
 
-        File.Move("ror-updater_new.exe", "ror-updater.exe");
-    }
-   
+    //Now Create all of the directories
+    foreach (var dirPath in Directory.GetDirectories(tmp, "*",
+        SearchOption.AllDirectories))
+        Directory.CreateDirectory(dirPath.Replace(tmp, dest));
+
+    //Copy all the files & Replaces any files with the same name
+    foreach (var newPath in Directory.GetFiles(tmp, "*.*",
+        SearchOption.AllDirectories))
+        File.Copy(newPath, newPath.Replace(tmp, dest), true);
+
+    Directory.Delete(tmp, true);
 }
+
 Thread.Sleep(100); //Sleep a bit before doing anything
-System.Diagnostics.Process.Start("ror-updater.exe");
+Process.Start("ror-updater.exe");
