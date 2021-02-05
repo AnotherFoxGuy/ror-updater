@@ -29,7 +29,7 @@ namespace ror_updater
         public ChoicePage()
         {
             InitializeComponent();
-            Utils.LOG("Info| Choise menu opened.");
+            Utils.LOG("Info| Choice menu opened.");
 
             //Repair game is also update game, both do the same, both do their work.
 

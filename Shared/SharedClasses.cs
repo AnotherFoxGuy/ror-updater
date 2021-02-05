@@ -16,7 +16,7 @@ public class PFileInfo
 public class Branch
 {
     public string Name;
-    public string Hash;
+    public string Url;
 }
 
 public class BranchInfo

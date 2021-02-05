@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ror-updater-list_maker")]
+[assembly: AssemblyTitle("ror_update_selfupdate")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("ror-updater-list_maker")]
+[assembly: AssemblyProduct("ror_update_selfupdate")]
 [assembly: AssemblyCopyright("Copyright © Microsoft 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("1d3f864a-52ab-4cc0-84ba-a0865b4d6816")]
+[assembly: Guid("e2735aaa-6240-4af5-bd77-f487f3028b49")]
 
 // Version information for an assembly consists of the following four values:
 //

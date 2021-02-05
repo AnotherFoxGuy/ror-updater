@@ -121,19 +121,19 @@ namespace ror_updater
                 switch (item.Status)
                 {
                     case HashResult.UPTODATE:
-                        Utils.LOG($"Info| file up to date:{item.File.Name}");
+                        Utils.LOG($"Info| file up to date: {item.File.Name}");
                         AddToLogFile($"File up to date: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
                         break;
                     case HashResult.OUTOFDATE:
                         AddToLogFile($"File out of date: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
-                        Utils.LOG($"Info| File out of date:{item.File.Name}");
+                        Utils.LOG($"Info| File out of date: {item.File.Name}");
                         await DownloadFile(item.File.Directory, item.File.Name);
                         break;
                     case HashResult.NOT_FOUND:
-                        Utils.LOG($"Info| File doesnt exits:{item.File.Name}");
+                        Utils.LOG($"Info| File doesnt exits: {item.File.Name}");
                         AddToLogFile(
                             $"Downloading new file: {item.File.Directory.TrimStart('.')}/{item.File.Name}");
-                       await DownloadFile(item.File.Directory, item.File.Name);
+                        await DownloadFile(item.File.Directory, item.File.Name);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -191,7 +191,7 @@ namespace ror_updater
 
             if (!File.Exists(filePath)) return HashResult.NOT_FOUND;
             sFileHash = Utils.GetFileHash(filePath);
-            Utils.LOG($"Info| {item.Name} Hash: Local: {sFileHash.ToLower()} Online:{item.Hash.ToLower()}");
+            Utils.LOG($"Info| {item.Name} Hash: Local: {sFileHash.ToLower()} Online: {item.Hash.ToLower()}");
             return sFileHash.ToLower().Equals(item.Hash.ToLower())
                 ? HashResult.UPTODATE
                 : HashResult.OUTOFDATE;
@@ -204,18 +204,19 @@ namespace ror_updater
 
             Thread.Sleep(100);
             var dest = $"{dir}/{file}";
-            var dlLink = $"{App.Instance.SelectedBranch.Hash}/{file}";
+            var path = dir.Replace(".", "");
+            var dlLink = $"{App.ServerUrl}/{App.Instance.SelectedBranch.Url}/{path}/{file}";
 
             try
             {
                 Utils.LOG($"Info| ULR: {dlLink}");
                 Utils.LOG($"Info| File: {dest}");
-                _webClient.DownloadFileAsync(new Uri(dlLink), dest);
+                await _webClient.DownloadFileTaskAsync(new Uri(dlLink), dest);
             }
             catch (Exception ex)
             {
                 Utils.LOG(ex.ToString());
-                MessageBox.Show($"Failed to download file:{dest}", "Error", MessageBoxButton.OK,
+                MessageBox.Show($"Failed to download file: {dest}", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
         }

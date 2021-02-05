@@ -37,20 +37,21 @@ namespace ror_updater
     /// </summary>
     public partial class App : Application
     {
-        public static string ServerUrl = "https://vps.anotherfoxguy.com";
+        public static string ServerUrl = "https://test.anotherfoxguy.com";
         public ReleaseInfo ReleaseInfoData;
         public Branch SelectedBranch;
 
         public static UpdateChoice Choice;
 
         private bool _bInit;
+        private string _branchName;
         private bool _bSkipUpdates;
         private bool _bSelfUpdating;
 
         private BackgroundWorker _initDialog = new BackgroundWorker();
 
         private PageSwitcher _pageSwitcher;
-        
+
         private WebClient _webClient;
 
         private StartupForm _sForm;
@@ -92,7 +93,7 @@ namespace ror_updater
             }
             catch (Exception ex)
             {
-                Utils.ProcessBadConfig(ex);
+                ProcessBadConfig(ex);
             }
 
             Thread.Sleep(100); //Wait a bit
@@ -100,10 +101,12 @@ namespace ror_updater
             try
             {
                 _bSkipUpdates = bool.Parse(_iniSettingsData["Dev"]["SkipUpdates"]);
+                ServerUrl = _iniSettingsData["Main"]["ServerUrl"];
+                _branchName = _iniSettingsData["Main"]["Branch"];
             }
             catch (Exception ex)
             {
-                Utils.ProcessBadConfig(ex);
+                ProcessBadConfig(ex);
             }
 
             Utils.LOG("Info| Done.");
@@ -121,9 +124,10 @@ namespace ror_updater
             {
                 var brjson = _webClient.DownloadString($"{ServerUrl}/branches.json");
                 branchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
-                SelectedBranch = branchInfo.Branches[0];
+                SelectedBranch =
+                    branchInfo.Branches.Find(b => b.Name.Equals(_branchName, StringComparison.OrdinalIgnoreCase));
 
-                var dat = _webClient.DownloadString(SelectedBranch.Hash);
+                var dat = _webClient.DownloadString($"{ServerUrl}/{SelectedBranch.Url}/info.json");
 
                 ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
 
@@ -143,11 +147,11 @@ namespace ror_updater
                 }
             }
 
-            if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
-                ProcessSelfUpdate();
+            //if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
+            //   ProcessSelfUpdate();
 
             Thread.Sleep(10); //Wait a bit
-            
+
             try
             {
                 //Use Product version instead of file version because we can use it to separate Dev version from release versions, same for TestBuilds
@@ -181,10 +185,25 @@ namespace ror_updater
 
             _webClient.DownloadFile(ServerUrl + "ror-updater_new.exe", @"./ror-updater_new.exe");
             _webClient.DownloadFile(ServerUrl + "ror-updater_selfupdate.exe", @"./ror-updater_selfupdate.exe");
-            
+
             Thread.Sleep(100); //Wait a bit
             Process.Start(@"./ror-updater_selfupdate.exe");
 
+            Quit();
+        }
+
+        public void ProcessBadConfig(Exception ex)
+        {
+            Utils.LOG("Error| Failed to read ini file, downloading new updater.ini.");
+            Utils.LOG(ex.ToString());
+
+            File.Delete("updater.ini");
+
+            new WebClient().DownloadFile(ServerUrl + "/updater.ini", @"./updater.ini");
+
+            MessageBox.Show("Please restart the updater!");
+
+            //Kill it
             Quit();
         }
 
@@ -204,7 +223,7 @@ namespace ror_updater
             {
                 //meh?
                 Thread.Sleep(500);
-                if(_bSelfUpdating)
+                if (_bSelfUpdating)
                     _sForm.label1.Text = "Updating...";
                 _sForm.Update();
             }

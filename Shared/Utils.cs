@@ -37,29 +37,13 @@ namespace ror_updater
 
         public static string GetFileHash(string filename)
         {
-            using (var md5 = new MD5CryptoServiceProvider())
+            using (var md5 = MD5.Create())
             {
-                var buffer = md5.ComputeHash(File.ReadAllBytes(filename));
-                var sb = new StringBuilder();
-                for (var i = 0; i < buffer.Length; i++)
-                    sb.Append(buffer[i].ToString("x2"));
-                return sb.ToString();
+                using (var stream = File.OpenRead(filename))
+                {
+                    return BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower();
+                }
             }
-        }
-
-        public static void ProcessBadConfig(Exception ex)
-        {
-            LOG("Error| Failed to read ini file, downloading new updater.ini.");
-            LOG(ex.ToString());
-
-            File.Delete("updater.ini");
-
-            new WebClient().DownloadFile(App.ServerUrl + "/updater.ini", @"./updater.ini");
-
-            MessageBox.Show("Please restart the updater!");
-
-            //Kill it
-            App.Quit();
         }
     }
 }
