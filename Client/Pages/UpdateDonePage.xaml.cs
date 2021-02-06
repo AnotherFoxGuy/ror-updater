@@ -45,11 +45,12 @@ namespace ror_updater
         {
         }
 
-        private void button_back_Click(object sender, RoutedEventArgs e)
+        private void button_quit_Click(object sender, RoutedEventArgs e)
         {
+            PageManager.Quit();
         }
 
-        private void button_next_Click(object sender, RoutedEventArgs e)
+        private void button_back_Click(object sender, RoutedEventArgs e)
         {
             PageManager.Switch(new ChoicePage());
         }

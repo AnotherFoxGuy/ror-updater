@@ -7,35 +7,44 @@ using System.Threading;
 var tmp = $"{Path.GetTempPath()}/ror-updater";
 var dest = Directory.GetCurrentDirectory();
 var zipPath = $"{Path.GetTempPath()}/patch.zip";
-Console.WriteLine("Waiting for update");
-Thread.Sleep(1000); //Sleep a bit before doing anything
-Console.WriteLine("Starting selfpatch...");
-if (File.Exists(zipPath))
+
+try
 {
-    Directory.CreateDirectory(tmp);
-    Console.WriteLine("Extracting zip");
-    ZipFile.ExtractToDirectory(zipPath, tmp);
-
-    //Now Create all of the directories
-    var dirs = Directory.GetDirectories(tmp, "*", SearchOption.AllDirectories);
-    foreach (var dirPath in dirs)
+    Console.WriteLine("Waiting for update");
+    Thread.Sleep(1000); //Sleep a bit before doing anything
+    Console.WriteLine("Starting selfpatch...");
+    if (File.Exists(zipPath))
     {
-        Directory.CreateDirectory(dirPath.Replace(tmp, dest));
-    }
+        if (Directory.Exists(tmp))
+            Directory.Delete(tmp, true);
 
+        Directory.CreateDirectory(tmp);
+        Console.WriteLine("Extracting zip");
+        ZipFile.ExtractToDirectory(zipPath, tmp);
 
-    //Copy all the files & Replaces any files with the same name
-    var files = Directory.GetFiles(tmp, "*.*", SearchOption.AllDirectories);
-    foreach (var newPath in files)
-    {
-        var filename = newPath.Replace(tmp, dest);
-        Console.WriteLine($"Copying {filename}");
-        File.Copy(newPath, filename, true);
-    }
+        //Now Create all of the directories
+        var dirs = Directory.GetDirectories(tmp, "*", SearchOption.AllDirectories);
+        foreach (var dirPath in dirs)
+        {
+            Directory.CreateDirectory(dirPath.Replace(tmp, dest));
+        }
     
-    Console.WriteLine("Done");
-    Directory.Delete(tmp, true);
-}
+        //Copy all the files & Replaces any files with the same name
+        var files = Directory.GetFiles(tmp, "*.*", SearchOption.AllDirectories);
+        foreach (var newPath in files)
+        {
+            var filename = newPath.Replace(tmp, dest);
+            Console.WriteLine($"Copying {filename}");
+            File.Copy(newPath, filename, true);
+        }
 
-Thread.Sleep(100); //Sleep a bit before doing anything
-Process.Start($"{dest}/ror-updater.exe");
+        Console.WriteLine("Done");
+    }
+
+    Thread.Sleep(100); //Sleep a bit before doing anything
+    Process.Start($"{dest}/ror-updater.exe");
+}
+catch(Exception exception)
+{
+    File.WriteAllText($"{dest}/selfpatch.log", $"{exception.Message}\n{exception.StackTrace}");
+}

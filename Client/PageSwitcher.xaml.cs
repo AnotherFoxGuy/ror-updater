@@ -45,9 +45,7 @@ namespace ror_updater
         public void Navigate(UserControl nextPage, object state)
         {
             Content = nextPage;
-            var s = nextPage as ISwitchable;
-
-            if (s != null)
+            if (nextPage is ISwitchable s)
                 s.UtilizeState(state);
             else
                 throw new ArgumentException("NextPage is not ISwitchable! " + nextPage.Name);
@@ -55,7 +53,7 @@ namespace ror_updater
 
         public void Quit()
         {
-            App.Quit();
+            Close();
         }
 
         public UserControl getCurrPage()

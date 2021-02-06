@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -191,8 +192,8 @@ namespace ror_updater
             try
             {
                 var currdir = Directory.GetCurrentDirectory();
-                Utils.LOG($"Downloading {ServerUrl}/ror-updater-selfupdate.exe");
-                _webClient.DownloadFile($"{ServerUrl}/ror-updater-selfupdate.exe",
+                Utils.LOG($"Downloading {ServerUrl}/selfupdate.exe");
+                _webClient.DownloadFile($"{ServerUrl}/selfupdate.exe",
                     $"{currdir}/ror-updater-selfupdate.exe");
                 Utils.LOG($"Downloading {ServerUrl}/patch.zip");
                 _webClient.DownloadFile($"{ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
@@ -215,6 +216,7 @@ namespace ror_updater
         {
             Utils.LOG("Error| Failed to read ini file, downloading new updater.ini.");
             Utils.LOG(ex.ToString());
+            SentrySdk.CaptureException(ex);
 
             File.Delete("updater.ini");
 
@@ -226,7 +228,7 @@ namespace ror_updater
             Quit();
         }
 
-        public static void Quit()
+        private void Quit()
         {
             Process.GetCurrentProcess().Kill();
         }
@@ -282,8 +284,10 @@ namespace ror_updater
 
         private App()
         {
+#if !DEBUG
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             SentrySdk.Init("https://c34f44d72cbc461e9787103e1474f04a@o84816.ingest.sentry.io/5625812");
+#endif
             _lazyApp = new Lazy<App>(() => this);
         }
 

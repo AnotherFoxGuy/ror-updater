@@ -64,19 +64,21 @@ namespace ror_updater
             {
                 case UpdateChoice.INSTALL:
                     Welcome_Label.Content = "Installing Rigs of Rods";
-                    await InstallGame(progress);
+                    await Task.Run(() => InstallGame(progress));
                     break;
                 case UpdateChoice.UPDATE:
                     Welcome_Label.Content = "Updating Rigs of Rods";
-                    await UpdateGame(progress);
+                    await Task.Run(() => UpdateGame(progress));
                     break;
                 case UpdateChoice.REPAIR:
                     Welcome_Label.Content = "Repairing Rigs of Rods";
-                    await UpdateGame(progress);
+                    await Task.Run(() => UpdateGame(progress));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            Dispatcher.BeginInvoke(new Action(() => { PageManager.Switch(new UpdateDonePage()); }));
         }
 
         private async Task InstallGame(IProgress<int> progress)
@@ -92,7 +94,6 @@ namespace ror_updater
             }
 
             Utils.LOG("Info| Done.");
-            NextPage();
         }
 
         private async Task UpdateGame(IProgress<int> progress)
@@ -105,13 +106,14 @@ namespace ror_updater
             var i = 0;
             foreach (var file in App.Instance.ReleaseInfoData.Filelist)
             {
-                var fileStatus = await Task.Run(() => HashFile(file));
+                var fileStatus = HashFile(file);
                 AddToLogFile($"Checking file: {file.Directory.TrimStart('.')}/{file.Name}");
                 filesStatus.Add(new FileStatus {File = file, Status = fileStatus});
                 progress?.Report(i++);
             }
 
             AddToLogFile("Done, updating outdated files now...");
+
             i = 0;
             foreach (var item in filesStatus)
             {
@@ -140,7 +142,6 @@ namespace ror_updater
             }
 
             Utils.LOG("Info| Done.");
-            NextPage();
         }
 
         private void button_back_Click(object sender, RoutedEventArgs e)
@@ -155,23 +156,12 @@ namespace ror_updater
 
         private void AddToLogFile(string s)
         {
-            Dispatcher.BeginInvoke(new Action(() => { LogWindow.Items.Add(s); }));
-        }
-
-        private void NextPage()
-        {
-            Dispatcher.BeginInvoke(new Action(() => { PageManager.Switch(new UpdateDonePage()); }));
-        }
-
-        private void HashFiles()
-        {
-            
+            Dispatcher.Invoke(() => { LogWindow.Items.Add(s); });
         }
 
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            //update ui
-            DownloadProgress.Value = e.ProgressPercentage;
+            Dispatcher.Invoke(() => { DownloadProgress.Value = e.ProgressPercentage; });
         }
 
         private void button_next_Click(object sender, RoutedEventArgs e)
