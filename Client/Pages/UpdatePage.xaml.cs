@@ -18,14 +18,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using Sentry;
 
 namespace ror_updater
@@ -103,7 +101,7 @@ namespace ror_updater
 
             var filesStatus = new List<FileStatus>();
 
-            AddToLogFile($"Checking for outdated files...");
+            AddToLogFile("Checking for outdated files...");
             var i = 0;
             foreach (var file in App.Instance.ReleaseInfoData.Filelist)
             {
@@ -163,6 +161,11 @@ namespace ror_updater
         private void NextPage()
         {
             Dispatcher.BeginInvoke(new Action(() => { PageManager.Switch(new UpdateDonePage()); }));
+        }
+
+        private void HashFiles()
+        {
+            
         }
 
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)

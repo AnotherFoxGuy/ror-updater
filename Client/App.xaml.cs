@@ -42,11 +42,11 @@ namespace ror_updater
         public static string ServerUrl = "https://test.anotherfoxguy.com";
         public ReleaseInfo ReleaseInfoData;
         public Branch SelectedBranch;
+        public BranchInfo BranchInfo;
 
         public static UpdateChoice Choice;
 
         private bool _bInit;
-        private string _branchName;
         private bool _bSkipUpdates;
         private bool _bSelfUpdating;
 
@@ -59,7 +59,7 @@ namespace ror_updater
         private StartupForm _sForm;
 
         private FileIniDataParser _iniDataParser;
-        private IniData _iniSettingsData;
+        public IniData IniSettingsData;
 
         public string LocalVersion;
 
@@ -68,11 +68,8 @@ namespace ror_updater
         public void InitApp(object sender, StartupEventArgs e)
         {
             File.WriteAllText(@"./Updater_log.txt", "");
-            
-            SentrySdk.ConfigureScope(scope =>
-            {
-                scope.AddAttachment(@"./Updater_log.txt");
-            });
+
+            SentrySdk.ConfigureScope(scope => { scope.AddAttachment(@"./Updater_log.txt"); });
 
             //Show something so users don't get confused
             _initDialog.DoWork += InitDialog_DoWork;
@@ -96,7 +93,7 @@ namespace ror_updater
             //Dirty code incoming!
             try
             {
-                _iniSettingsData = _iniDataParser.ReadFile("./updater.ini", Encoding.ASCII);
+                IniSettingsData = _iniDataParser.ReadFile("./updater.ini", Encoding.ASCII);
             }
             catch (Exception ex)
             {
@@ -105,11 +102,13 @@ namespace ror_updater
 
             Thread.Sleep(100); //Wait a bit
 
+            var branchName = "Release";
+
             try
             {
-                _bSkipUpdates = bool.Parse(_iniSettingsData["Dev"]["SkipUpdates"]);
-                ServerUrl = _iniSettingsData["Main"]["ServerUrl"];
-                _branchName = _iniSettingsData["Main"]["Branch"];
+                _bSkipUpdates = bool.Parse(IniSettingsData["Dev"]["SkipUpdates"]);
+                ServerUrl = IniSettingsData["Main"]["ServerUrl"];
+                branchName = IniSettingsData["Main"]["Branch"];
             }
             catch (Exception ex)
             {
@@ -125,22 +124,14 @@ namespace ror_updater
             //Download list
             Utils.LOG($"Info| Downloading main list from server: {ServerUrl}/branches.json");
 
-            BranchInfo branchInfo = null;
-
             try
             {
                 var brjson = _webClient.DownloadString($"{ServerUrl}/branches.json");
-                branchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
-                SelectedBranch =
-                    branchInfo.Branches.Find(b => b.Name.Equals(_branchName, StringComparison.OrdinalIgnoreCase));
-
-                var dat = _webClient.DownloadString($"{ServerUrl}/{SelectedBranch.Url}/info.json");
-
-                ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
-
-                Utils.LOG($"Info| Updater: {branchInfo.UpdaterVersion}");
-                Utils.LOG($"Info| Rigs-of-Rods: {ReleaseInfoData.Version}");
-                Utils.LOG("Info| Done.");
+                BranchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
+                UpdateBranch(
+                    BranchInfo.Branches.Find(
+                        b => b.Name.Equals(branchName, StringComparison.OrdinalIgnoreCase)) ??
+                    BranchInfo.Branches[0]);
             }
             catch (Exception ex)
             {
@@ -153,11 +144,9 @@ namespace ror_updater
                     Utils.LOG("Error| Failed to connect to server.");
                     Quit();
                 }
-
-                
             }
 
-            if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
+            if (_localUpdaterVersion != BranchInfo?.UpdaterVersion && !_bSkipUpdates)
                 ProcessSelfUpdate();
 
             Thread.Sleep(10); //Wait a bit
@@ -242,6 +231,22 @@ namespace ror_updater
             Process.GetCurrentProcess().Kill();
         }
 
+        public void SaveIni()
+        {
+            _iniDataParser.WriteFile("./updater.ini", IniSettingsData, Encoding.ASCII);
+        }
+
+        public void UpdateBranch(Branch br)
+        {
+            SelectedBranch = br;
+            IniSettingsData["Main"]["Branch"] = SelectedBranch.Name;
+
+            var dat = _webClient.DownloadString($"{ServerUrl}/{SelectedBranch.Url}/info.json");
+            ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
+
+            Utils.LOG($"Info| Switched to branch: {SelectedBranch.Name} Version: {ReleaseInfoData.Version}");
+        }
+
         private void InitDialog_DoWork(object sender, DoWorkEventArgs e)
         {
             // Very dirty way to do this. :/
@@ -260,7 +265,7 @@ namespace ror_updater
             _sForm.Hide();
             _sForm = null;
         }
-        
+
         void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             SentrySdk.CaptureException(e.Exception);

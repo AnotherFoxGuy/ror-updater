@@ -5,6 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
              d:DesignHeight="510" d:DesignWidth="585">
+
+
     <Grid Height="510" Width="585" VerticalAlignment="Top">
         <Label x:Name="Welcome_Label"
                Content="Welcome to Rigs of rods's installation manager. You can use this application &#xD;&#xA;to install the game, or to update it to the latest version. &#xD;&#xA;&#xD;&#xA;Before proceeding, please ensure that Rigs of rods is not running."
@@ -20,6 +22,19 @@
                 VerticalAlignment="Top" Width="75" Click="button_quit_Click" />
         <Button Content="Next" HorizontalAlignment="Left" Margin="320,480,0,0" VerticalAlignment="Top" Width="75"
                 Visibility="Hidden" />
+
+        <Label x:Name="BranchesLabel" Content="Branches" HorizontalAlignment="Left" Margin="21,270,0,0"
+               VerticalAlignment="Top" FontSize="14" />
+        <ListBox Name="BranchesListBox" HorizontalAlignment="Left" Height="150" Margin="20,300,0,0" 
+                 VerticalAlignment="Top" Width="548" BorderBrush="White" BorderThickness="1"
+                 SelectionChanged="BranchesListBox_SelectionChanged" SelectionMode="Single">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
 
     </Grid>
 </UserControl>

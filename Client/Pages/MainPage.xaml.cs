@@ -16,6 +16,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -26,11 +27,16 @@ namespace ror_updater
     /// </summary>
     public partial class MainPage : UserControl, ISwitchable
     {
+        private List<Branch> Branches;
+
         public MainPage()
         {
             InitializeComponent();
-            local_version.Content = "Local version: " + App.Instance.LocalVersion;
-            online_version.Content = "Online version: " + App.Instance.ReleaseInfoData.Version;
+            Branches = App.Instance.BranchInfo.Branches;
+            BranchesListBox.ItemsSource = Branches;
+            BranchesListBox.SelectedItem = App.Instance.SelectedBranch;
+            local_version.Content = $"Local version: {App.Instance.LocalVersion}";
+            online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
         }
 
         #region ISwitchable Members
@@ -48,12 +54,20 @@ namespace ror_updater
 
         private void button_next_Click(object sender, RoutedEventArgs e)
         {
+            App.Instance.SaveIni();
+
             PageManager.Switch(new ChoicePage());
         }
 
         private void button_quit_Click(object sender, RoutedEventArgs e)
         {
             PageManager.Quit();
+        }
+
+        private void BranchesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            App.Instance.UpdateBranch((Branch) BranchesListBox.SelectedItem);
+            online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
         }
     }
 }
