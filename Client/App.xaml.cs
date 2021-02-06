@@ -26,9 +26,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using IniParser;
 using IniParser.Model;
 using Newtonsoft.Json;
+using Sentry;
 
 namespace ror_updater
 {
@@ -66,6 +68,11 @@ namespace ror_updater
         public void InitApp(object sender, StartupEventArgs e)
         {
             File.WriteAllText(@"./Updater_log.txt", "");
+            
+            SentrySdk.ConfigureScope(scope =>
+            {
+                scope.AddAttachment(@"./Updater_log.txt");
+            });
 
             //Show something so users don't get confused
             _initDialog.DoWork += InitDialog_DoWork;
@@ -138,6 +145,7 @@ namespace ror_updater
             catch (Exception ex)
             {
                 Utils.LOG(ex.ToString());
+                SentrySdk.CaptureException(ex);
                 result = MessageBox.Show("Could not connect to the main server.", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 if (result == MessageBoxResult.OK)
@@ -145,6 +153,8 @@ namespace ror_updater
                     Utils.LOG("Error| Failed to connect to server.");
                     Quit();
                 }
+
+                
             }
 
             if (_localUpdaterVersion != branchInfo?.UpdaterVersion && !_bSkipUpdates)
@@ -181,21 +191,32 @@ namespace ror_updater
 
         void ProcessSelfUpdate()
         {
+            var result = MessageBox.Show("There is an update available, do you want to install it now?",
+                "Update available ", MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.No) return;
+
             _bSelfUpdating = true;
 
             try
             {
-                _webClient.DownloadFile(ServerUrl + "/ror-updater-selfupdate.exe", @"./ror-updater-selfupdate.exe");
-                _webClient.DownloadFile(ServerUrl + "/patch.zip", $"{Path.GetTempPath()}/patch.zip");
+                var currdir = Directory.GetCurrentDirectory();
+                Utils.LOG($"Downloading {ServerUrl}/ror-updater-selfupdate.exe");
+                _webClient.DownloadFile($"{ServerUrl}/ror-updater-selfupdate.exe",
+                    $"{currdir}/ror-updater-selfupdate.exe");
+                Utils.LOG($"Downloading {ServerUrl}/patch.zip");
+                _webClient.DownloadFile($"{ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
 
                 Thread.Sleep(100); //Wait a bit
-                Process.Start(@"./ror-updater-selfupdate.exe");
+                Process.Start($"{currdir}/ror-updater-selfupdate.exe");
             }
             catch (Exception ex)
             {
                 Utils.LOG(ex.ToString());
                 MessageBox.Show("SelfUpdate error", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
+                SentrySdk.CaptureException(ex);
             }
 
             Quit();
@@ -208,7 +229,7 @@ namespace ror_updater
 
             File.Delete("updater.ini");
 
-            _webClient.DownloadFile(ServerUrl + "/updater.ini", @"./updater.ini");
+            _webClient.DownloadFile(ServerUrl + "/updater.ini", $"{Directory.GetCurrentDirectory()}/updater.ini");
 
             MessageBox.Show("Please restart the updater!");
 
@@ -239,6 +260,14 @@ namespace ror_updater
             _sForm.Hide();
             _sForm = null;
         }
+        
+        void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            SentrySdk.CaptureException(e.Exception);
+
+            // If you want to avoid the application from crashing:
+            //e.Handled = true;
+        }
 
         #region Singleton
 
@@ -248,6 +277,8 @@ namespace ror_updater
 
         private App()
         {
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
+            SentrySdk.Init("https://c34f44d72cbc461e9787103e1474f04a@o84816.ingest.sentry.io/5625812");
             _lazyApp = new Lazy<App>(() => this);
         }
 

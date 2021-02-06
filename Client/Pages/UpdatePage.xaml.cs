@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using Sentry;
 
 namespace ror_updater
 {
@@ -218,6 +219,7 @@ namespace ror_updater
                 Utils.LOG(ex.ToString());
                 MessageBox.Show($"Failed to download file: {dest}", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
+                SentrySdk.CaptureException(ex);
             }
         }
 

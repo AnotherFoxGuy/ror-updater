@@ -28,7 +28,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Rigs of Rods Community")]
 [assembly: AssemblyProduct("ror-updater")]
-[assembly: AssemblyCopyright("Copyright © Rigs of Rods Community 2020")]
+[assembly: AssemblyCopyright("Copyright © Rigs of Rods Community 2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
