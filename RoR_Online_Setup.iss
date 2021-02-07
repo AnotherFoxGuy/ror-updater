@@ -45,12 +45,8 @@ ShowLanguageDialog=no
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
-;[Dirs]
-;Name: "{userdocs}\Rigs of Rods 0.4\mods"
-
 [Files]
 Source: "Client\bin\Release\ror-updater.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "updater.ini"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Icons\ror.ico"; DestDir: "{app}"
 Source: "Client\bin\Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion createallsubdirs recursesubdirs
 
@@ -63,6 +59,3 @@ Name: "{commondesktop}\Rigs of Rods"; Filename: "{app}\RoR.exe"; IconFilename: "
 
 [Run]
 Filename: "{app}\ror-updater.exe"; WorkingDir: "{app}"; Flags: nowait
-
-[Dirs]
-Name: "{app}\Install dir"; Flags: uninsalwaysuninstall

@@ -51,7 +51,7 @@ namespace ror_updater
 
         private string _localUpdaterVersion;
 
-        private Settings _settings;
+        public Settings Settings;
 
 
         public void InitApp(object sender, StartupEventArgs e)
@@ -75,35 +75,35 @@ namespace ror_updater
                 try
                 {
                     var set = File.ReadAllText($"{currdir}/ror-updater-settings.json");
-                    _settings = JsonConvert.DeserializeObject<Settings>(set);
+                    Settings = JsonConvert.DeserializeObject<Settings>(set);
                 }
                 catch (Exception ex)
                 {
                     Utils.LOG("Error| Failed to read settings file");
                     Utils.LOG(ex.ToString());
                     SentrySdk.CaptureException(ex);
-                    _settings = new Settings();
-                    _settings.SetDefaults();
+                    Settings = new Settings();
+                    Settings.SetDefaults();
                 }
             }
             else
             {
-                _settings = new Settings();
-                _settings.SetDefaults();
+                Settings = new Settings();
+                Settings.SetDefaults();
             }
 
-            CDNUrl = _settings.ServerUrl;
+            CDNUrl = Settings.ServerUrl;
 
             Utils.LOG("Info| Done.");
-            Utils.LOG($"Info| Skip_updates: {_settings.SkipUpdates}");
+            Utils.LOG($"Info| Skip_updates: {Settings.SkipUpdates}");
 
             //Download list
-            Utils.LOG($"Info| Downloading main list from server: {_settings.ServerUrl}/branches.json");
+            Utils.LOG($"Info| Downloading main list from server: {Settings.ServerUrl}/branches.json");
             try
             {
-                var brjson = _webClient.DownloadString($"{_settings.ServerUrl}/branches.json");
+                var brjson = _webClient.DownloadString($"{Settings.ServerUrl}/branches.json");
                 BranchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
-                UpdateBranch(_settings.Branch);
+                UpdateBranch(Settings.Branch);
             }
             catch (Exception ex)
             {
@@ -118,7 +118,7 @@ namespace ror_updater
                 }
             }
 
-            if (_localUpdaterVersion != BranchInfo?.UpdaterVersion && !_settings.SkipUpdates)
+            if (_localUpdaterVersion != BranchInfo?.UpdaterVersion && !Settings.SkipUpdates)
             {
                 _sForm.label1.Text = @"Updating...";
                 ProcessSelfUpdate();
@@ -159,11 +159,11 @@ namespace ror_updater
             try
             {
                 var currdir = Directory.GetCurrentDirectory();
-                Utils.LOG($"Downloading {_settings.ServerUrl}/selfupdate.exe");
-                _webClient.DownloadFile($"{_settings.ServerUrl}/selfupdate.exe",
+                Utils.LOG($"Downloading {Settings.ServerUrl}/selfupdate.exe");
+                _webClient.DownloadFile($"{Settings.ServerUrl}/selfupdate.exe",
                     $"{currdir}/ror-updater-selfupdate.exe");
-                Utils.LOG($"Downloading {_settings.ServerUrl}/patch.zip");
-                _webClient.DownloadFile($"{_settings.ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
+                Utils.LOG($"Downloading {Settings.ServerUrl}/patch.zip");
+                _webClient.DownloadFile($"{Settings.ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
 
                 Thread.Sleep(100); //Wait a bit
                 Process.Start($"{currdir}/ror-updater-selfupdate.exe");
@@ -186,7 +186,7 @@ namespace ror_updater
 
         public void SaveSettings()
         {
-            var dat = JsonConvert.SerializeObject(_settings);
+            var dat = JsonConvert.SerializeObject(Settings);
             File.WriteAllText($"{Directory.GetCurrentDirectory()}/ror-updater-settings.json", dat);
         }
 
@@ -203,11 +203,11 @@ namespace ror_updater
                 SelectedBranch = BranchInfo.Branches.First().Value;
             }
 
-            _settings.Branch = branchname;
+            Settings.Branch = branchname;
             
             CDNUrl = SelectedBranch.Url.Contains("http")
                 ? SelectedBranch.Url
-                : $"{_settings.ServerUrl}/{SelectedBranch.Url}";
+                : $"{Settings.ServerUrl}/{SelectedBranch.Url}";
             
             try
             {

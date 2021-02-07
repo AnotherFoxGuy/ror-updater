@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -30,16 +31,26 @@ namespace ror_updater
         public MainPage()
         {
             InitializeComponent();
-            BranchesListBox.ItemsSource = App.Instance.BranchInfo.Branches;
-            BranchesListBox.SelectedItem = App.Instance.SelectedBranch;
+            var listItems = App.Instance.BranchInfo.Branches
+                .Select(p => new ListItem {ID = p.Key, Name = p.Value.Name})
+                .ToList();
+            BranchesListBox.ItemsSource = listItems;
             local_version.Content = $"Local version: {App.Instance.LocalVersion}";
             online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
+
+            try
+            {
+                BranchesListBox.SelectedItem = listItems.Find(i => i.ID == App.Instance.Settings.Branch);
+            }
+            catch (Exception ex)
+            {
+                Utils.LOG(ex.ToString());
+            }
         }
 
         private void button_next_Click(object sender, RoutedEventArgs e)
         {
             App.Instance.SaveSettings();
-
             PageManager.Switch(new ChoicePage());
         }
 
@@ -50,12 +61,18 @@ namespace ror_updater
 
         private void BranchesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var select = (KeyValuePair<string, Branch>) BranchesListBox.SelectedItem;
-            App.Instance.UpdateBranch(select.Key);
+            App.Instance.UpdateBranch(((ListItem) BranchesListBox.SelectedItem).ID);
             online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
         }
-        
+
+        private class ListItem
+        {
+            public string ID { get; set; }
+            public string Name { get; set; }
+        }
+
         #region ISwitchable Members
+
         public void UtilizeState(object state)
         {
             throw new NotImplementedException();
@@ -64,7 +81,7 @@ namespace ror_updater
         public void recvData(string[] str, int[] num)
         {
         }
-        #endregion
 
+        #endregion
     }
 }
