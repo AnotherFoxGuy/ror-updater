@@ -27,29 +27,13 @@ namespace ror_updater
     /// </summary>
     public partial class MainPage : UserControl, ISwitchable
     {
-        private List<Branch> Branches;
-
         public MainPage()
         {
             InitializeComponent();
-            Branches = App.Instance.BranchInfo.Branches;
-            BranchesListBox.ItemsSource = Branches;
+            BranchesListBox.ItemsSource = App.Instance.BranchInfo.Branches;
             BranchesListBox.SelectedItem = App.Instance.SelectedBranch;
             local_version.Content = $"Local version: {App.Instance.LocalVersion}";
             online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
-        }
-
-        #region ISwitchable Members
-
-        public void UtilizeState(object state)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-        public void recvData(string[] str, int[] num)
-        {
         }
 
         private void button_next_Click(object sender, RoutedEventArgs e)
@@ -66,8 +50,21 @@ namespace ror_updater
 
         private void BranchesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            App.Instance.UpdateBranch((Branch) BranchesListBox.SelectedItem);
+            var select = (KeyValuePair<string, Branch>) BranchesListBox.SelectedItem;
+            App.Instance.UpdateBranch(select.Key);
             online_version.Content = $"Online version: {App.Instance.ReleaseInfoData.Version}";
         }
+        
+        #region ISwitchable Members
+        public void UtilizeState(object state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void recvData(string[] str, int[] num)
+        {
+        }
+        #endregion
+
     }
 }

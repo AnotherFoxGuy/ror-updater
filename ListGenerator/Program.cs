@@ -4,7 +4,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Mime;
 using System.Threading;
 using Newtonsoft.Json;
 using ror_updater;
@@ -21,20 +20,20 @@ namespace list_generator
                 new Option<string?>(new[] {"--branch", "-b"}, "The Branch name"),
             };
 
-            cmd.Handler = CommandHandler.Create<string, string?, IConsole>(HandleGreeting);
+            cmd.Handler = CommandHandler.Create<string, string?, IConsole>(GenerateJsonInfo);
 
             return cmd.Invoke(args);
         }
 
-        static void HandleGreeting(string path, string? branchname, IConsole console)
+        static void GenerateJsonInfo(string path, string? branchname, IConsole console)
         {
             if (string.IsNullOrEmpty(branchname))
                 branchname = "Release";
-            
+
             Console.WriteLine(path);
 
             var fullPath = Path.GetFullPath(path);
-            
+
             List<PFileInfo> _filelist = new List<PFileInfo>();
             var filePaths = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
             var i = 0;
@@ -49,10 +48,10 @@ namespace list_generator
                 _filelist.Add(new PFileInfo
                 {
                     Name = fileInfo.Name,
-                    Directory = dir.Replace("\\","/"),
+                    Directory = dir.Replace("\\", "/"),
                     Hash = Utils.GetFileHash(fileInfo.FullName)
                 });
-                
+
                 Console.Write($"\r{i}/{filePaths.Length}\r");
 
                 i++;
@@ -69,14 +68,15 @@ namespace list_generator
                     Filelist = _filelist
                 }
             ));
+            
 
-            File.WriteAllText("./branches.json", JsonConvert.SerializeObject(
+            File.WriteAllText("./branches.json.example", JsonConvert.SerializeObject(
                 new BranchInfo
                 {
                     UpdaterVersion = "1.10",
-                    Branches = new List<Branch>
+                    Branches = new Dictionary<string, Branch>
                     {
-                        new() {Name = branchname, Url = $"/{branchname.ToLower()}/"},
+                        {branchname, new Branch {Name = branchname, Url = $"/{branchname.ToLower()}/"}}
                     }
                 }
             ));

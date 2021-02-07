@@ -18,6 +18,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading;
@@ -60,9 +61,6 @@ namespace ror_updater
 
             SentrySdk.ConfigureScope(scope => { scope.AddAttachment($"{currdir}/Updater_log.txt"); });
 
-            _sForm = new StartupForm();
-            _sForm.Show();
-
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             _localUpdaterVersion = fileVersionInfo.ProductVersion;
@@ -95,7 +93,6 @@ namespace ror_updater
             }
 
             CDNUrl = _settings.ServerUrl;
-            Thread.Sleep(100);
 
             Utils.LOG("Info| Done.");
             Utils.LOG($"Info| Skip_updates: {_settings.SkipUpdates}");
@@ -106,10 +103,7 @@ namespace ror_updater
             {
                 var brjson = _webClient.DownloadString($"{_settings.ServerUrl}/branches.json");
                 BranchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
-                UpdateBranch(
-                    BranchInfo.Branches.Find(
-                        b => b.Name.Equals(_settings.Branch, StringComparison.OrdinalIgnoreCase)) ??
-                    BranchInfo.Branches[0]);
+                UpdateBranch(_settings.Branch);
             }
             catch (Exception ex)
             {
@@ -130,8 +124,6 @@ namespace ror_updater
                 ProcessSelfUpdate();
             }
 
-            Thread.Sleep(10); //Wait a bit
-
             try
             {
                 //Use Product version instead of file version because we can use it to separate Dev version from release versions, same for TestBuilds
@@ -150,11 +142,10 @@ namespace ror_updater
             Utils.LOG("Info| Done.");
             Utils.LOG("Success| Initialization done!");
 
-            _sForm.Close();
-
             _pageSwitcher = new PageSwitcher();
             _pageSwitcher.Show();
             _pageSwitcher.Activate();
+            _sForm.Close();
         }
 
         void ProcessSelfUpdate()
@@ -199,16 +190,37 @@ namespace ror_updater
             File.WriteAllText($"{Directory.GetCurrentDirectory()}/ror-updater-settings.json", dat);
         }
 
-        public void UpdateBranch(Branch br)
+        public void UpdateBranch(string branchname)
         {
-            SelectedBranch = br;
-            _settings.Branch = SelectedBranch.Name;
+            try
+            {
+                SelectedBranch = BranchInfo.Branches[branchname];
+            }
+            catch (Exception ex)
+            {
+                Utils.LOG($"Error| Failed to switch to branch {branchname}");
+                Utils.LOG(ex.ToString());
+                SelectedBranch = BranchInfo.Branches.First().Value;
+            }
 
-            CDNUrl = br.Url.Contains("http") ? br.Url : $"{_settings.ServerUrl}/{br.Url}";
-
-            var dat = _webClient.DownloadString($"{CDNUrl}/info.json");
-            ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
-
+            _settings.Branch = branchname;
+            
+            CDNUrl = SelectedBranch.Url.Contains("http")
+                ? SelectedBranch.Url
+                : $"{_settings.ServerUrl}/{SelectedBranch.Url}";
+            
+            try
+            {
+                var dat = _webClient.DownloadString($"{CDNUrl}/info.json");
+                ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
+            }
+            catch (Exception ex)
+            {
+                Utils.LOG(ex.ToString());
+                MessageBox.Show("Failed to download branch info", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                SentrySdk.CaptureException(ex);
+            }
             Utils.LOG($"Info| Switched to branch: {SelectedBranch.Name} Version: {ReleaseInfoData.Version}");
         }
 
@@ -228,6 +240,10 @@ namespace ror_updater
 
         private App()
         {
+            _sForm = new StartupForm();
+            _sForm.Show();
+            // Render the form
+            _sForm.Update();
 #if !DEBUG
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             SentrySdk.Init("https://c34f44d72cbc461e9787103e1474f04a@o84816.ingest.sentry.io/5625812");
