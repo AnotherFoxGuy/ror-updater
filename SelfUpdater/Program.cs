@@ -40,9 +40,10 @@ try
 
         Console.WriteLine("Done");
     }
-
-    Thread.Sleep(100); //Sleep a bit before doing anything
+    
     Process.Start($"{dest}/ror-updater.exe");
+    
+    Thread.Sleep(2500); //Sleep a bit before doing anything
 }
 catch(Exception exception)
 {

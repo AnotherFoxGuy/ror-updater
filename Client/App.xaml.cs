@@ -16,20 +16,13 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using IniParser;
-using IniParser.Model;
 using Newtonsoft.Json;
 using Sentry;
 
@@ -40,18 +33,12 @@ namespace ror_updater
     /// </summary>
     public partial class App : Application
     {
-        public static string ServerUrl = "https://test.anotherfoxguy.com";
         public ReleaseInfo ReleaseInfoData;
         public Branch SelectedBranch;
         public BranchInfo BranchInfo;
+        public string CDNUrl;
 
         public static UpdateChoice Choice;
-
-        private bool _bInit;
-        private bool _bSkipUpdates;
-        private bool _bSelfUpdating;
-
-        private BackgroundWorker _initDialog = new BackgroundWorker();
 
         private PageSwitcher _pageSwitcher;
 
@@ -59,22 +46,22 @@ namespace ror_updater
 
         private StartupForm _sForm;
 
-        private FileIniDataParser _iniDataParser;
-        public IniData IniSettingsData;
-
         public string LocalVersion;
 
         private string _localUpdaterVersion;
 
+        private Settings _settings;
+
+
         public void InitApp(object sender, StartupEventArgs e)
         {
-            File.WriteAllText(@"./Updater_log.txt", "");
+            var currdir = Directory.GetCurrentDirectory();
+            File.WriteAllText($"{currdir}/Updater_log.txt", "");
 
-            SentrySdk.ConfigureScope(scope => { scope.AddAttachment(@"./Updater_log.txt"); });
+            SentrySdk.ConfigureScope(scope => { scope.AddAttachment($"{currdir}/Updater_log.txt"); });
 
-            //Show something so users don't get confused
-            _initDialog.DoWork += InitDialog_DoWork;
-            _initDialog.RunWorkerAsync();
+            _sForm = new StartupForm();
+            _sForm.Show();
 
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
@@ -85,60 +72,50 @@ namespace ror_updater
             _webClient = new WebClient();
             Utils.LOG("Info| Done.");
 
-            Utils.LOG("Info| Creating INI handler");
-
-            //Proceed
-            _iniDataParser = new FileIniDataParser();
-            _iniDataParser.Parser.Configuration.CommentString = "#";
-
-            //Dirty code incoming!
-            try
+            if (File.Exists($"{currdir}/ror-updater-settings.json"))
             {
-                IniSettingsData = _iniDataParser.ReadFile("./updater.ini", Encoding.ASCII);
+                try
+                {
+                    var set = File.ReadAllText($"{currdir}/ror-updater-settings.json");
+                    _settings = JsonConvert.DeserializeObject<Settings>(set);
+                }
+                catch (Exception ex)
+                {
+                    Utils.LOG("Error| Failed to read settings file");
+                    Utils.LOG(ex.ToString());
+                    SentrySdk.CaptureException(ex);
+                    _settings = new Settings();
+                    _settings.SetDefaults();
+                }
             }
-            catch (Exception ex)
+            else
             {
-                ProcessBadConfig(ex);
+                _settings = new Settings();
+                _settings.SetDefaults();
             }
 
-            Thread.Sleep(100); //Wait a bit
-
-            var branchName = "Release";
-
-            try
-            {
-                _bSkipUpdates = bool.Parse(IniSettingsData["Dev"]["SkipUpdates"]);
-                ServerUrl = IniSettingsData["Main"]["ServerUrl"];
-                branchName = IniSettingsData["Main"]["Branch"];
-            }
-            catch (Exception ex)
-            {
-                ProcessBadConfig(ex);
-            }
+            CDNUrl = _settings.ServerUrl;
+            Thread.Sleep(100);
 
             Utils.LOG("Info| Done.");
-            Utils.LOG($"Info| Skip_updates: {_bSkipUpdates}");
-
-            //Get app version
-            MessageBoxResult result;
+            Utils.LOG($"Info| Skip_updates: {_settings.SkipUpdates}");
 
             //Download list
-            Utils.LOG($"Info| Downloading main list from server: {ServerUrl}/branches.json");
-
+            Utils.LOG($"Info| Downloading main list from server: {_settings.ServerUrl}/branches.json");
             try
             {
-                var brjson = _webClient.DownloadString($"{ServerUrl}/branches.json");
+                var brjson = _webClient.DownloadString($"{_settings.ServerUrl}/branches.json");
                 BranchInfo = JsonConvert.DeserializeObject<BranchInfo>(brjson);
                 UpdateBranch(
                     BranchInfo.Branches.Find(
-                        b => b.Name.Equals(branchName, StringComparison.OrdinalIgnoreCase)) ??
+                        b => b.Name.Equals(_settings.Branch, StringComparison.OrdinalIgnoreCase)) ??
                     BranchInfo.Branches[0]);
             }
             catch (Exception ex)
             {
                 Utils.LOG(ex.ToString());
                 SentrySdk.CaptureException(ex);
-                result = MessageBox.Show("Could not connect to the main server.", "Error", MessageBoxButton.OK,
+                var result = MessageBox.Show("Could not connect to the main server.", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 if (result == MessageBoxResult.OK)
                 {
@@ -147,8 +124,11 @@ namespace ror_updater
                 }
             }
 
-            if (_localUpdaterVersion != BranchInfo?.UpdaterVersion && !_bSkipUpdates)
+            if (_localUpdaterVersion != BranchInfo?.UpdaterVersion && !_settings.SkipUpdates)
+            {
+                _sForm.label1.Text = @"Updating...";
                 ProcessSelfUpdate();
+            }
 
             Thread.Sleep(10); //Wait a bit
 
@@ -168,11 +148,9 @@ namespace ror_updater
             }
 
             Utils.LOG("Info| Done.");
-            Utils.LOG("Succes| Initialization done!");
+            Utils.LOG("Success| Initialization done!");
 
-            _bInit = true;
-
-            _initDialog = null; //We don't need it anymore.. :3
+            _sForm.Close();
 
             _pageSwitcher = new PageSwitcher();
             _pageSwitcher.Show();
@@ -185,18 +163,16 @@ namespace ror_updater
                 "Update available ", MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-            if (result == MessageBoxResult.No) return;
-
-            _bSelfUpdating = true;
+            if (result != MessageBoxResult.Yes) return;
 
             try
             {
                 var currdir = Directory.GetCurrentDirectory();
-                Utils.LOG($"Downloading {ServerUrl}/selfupdate.exe");
-                _webClient.DownloadFile($"{ServerUrl}/selfupdate.exe",
+                Utils.LOG($"Downloading {_settings.ServerUrl}/selfupdate.exe");
+                _webClient.DownloadFile($"{_settings.ServerUrl}/selfupdate.exe",
                     $"{currdir}/ror-updater-selfupdate.exe");
-                Utils.LOG($"Downloading {ServerUrl}/patch.zip");
-                _webClient.DownloadFile($"{ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
+                Utils.LOG($"Downloading {_settings.ServerUrl}/patch.zip");
+                _webClient.DownloadFile($"{_settings.ServerUrl}/patch.zip", $"{Path.GetTempPath()}/patch.zip");
 
                 Thread.Sleep(100); //Wait a bit
                 Process.Start($"{currdir}/ror-updater-selfupdate.exe");
@@ -212,60 +188,28 @@ namespace ror_updater
             Quit();
         }
 
-        public void ProcessBadConfig(Exception ex)
-        {
-            Utils.LOG("Error| Failed to read ini file, downloading new updater.ini.");
-            Utils.LOG(ex.ToString());
-            SentrySdk.CaptureException(ex);
-
-            File.Delete("updater.ini");
-
-            _webClient.DownloadFile(ServerUrl + "/updater.ini", $"{Directory.GetCurrentDirectory()}/updater.ini");
-
-            MessageBox.Show("Please restart the updater!");
-
-            //Kill it
-            Quit();
-        }
-
         private void Quit()
         {
             Process.GetCurrentProcess().Kill();
         }
 
-        public void SaveIni()
+        public void SaveSettings()
         {
-            _iniDataParser.WriteFile("./updater.ini", IniSettingsData, Encoding.ASCII);
+            var dat = JsonConvert.SerializeObject(_settings);
+            File.WriteAllText($"{Directory.GetCurrentDirectory()}/ror-updater-settings.json", dat);
         }
 
         public void UpdateBranch(Branch br)
         {
             SelectedBranch = br;
-            IniSettingsData["Main"]["Branch"] = SelectedBranch.Name;
+            _settings.Branch = SelectedBranch.Name;
 
-            var dat = _webClient.DownloadString($"{ServerUrl}/{SelectedBranch.Url}/info.json");
+            CDNUrl = br.Url.Contains("http") ? br.Url : $"{_settings.ServerUrl}/{br.Url}";
+
+            var dat = _webClient.DownloadString($"{CDNUrl}/info.json");
             ReleaseInfoData = JsonConvert.DeserializeObject<ReleaseInfo>(dat);
 
             Utils.LOG($"Info| Switched to branch: {SelectedBranch.Name} Version: {ReleaseInfoData.Version}");
-        }
-
-        private void InitDialog_DoWork(object sender, DoWorkEventArgs e)
-        {
-            // Very dirty way to do this. :/
-            _sForm = new StartupForm();
-            _sForm.Show();
-
-            while (!_bInit)
-            {
-                //meh?
-                Thread.Sleep(500);
-                if (_bSelfUpdating)
-                    _sForm.label1.Text = "Updating...";
-                _sForm.Update();
-            }
-
-            _sForm.Hide();
-            _sForm = null;
         }
 
         void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

@@ -62,4 +62,7 @@ Name: "{group}\{cm:UninstallProgram,{#InstallerName}}"; Filename: "{uninstallexe
 Name: "{commondesktop}\Rigs of Rods"; Filename: "{app}\RoR.exe"; IconFilename: "{app}\ror.ico"; IconIndex: 0; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\ror-updater.exe"; WorkingDir: "{app}"
+Filename: "{app}\ror-updater.exe"; WorkingDir: "{app}"; Flags: nowait
+
+[Dirs]
+Name: "{app}\Install dir"; Flags: uninsalwaysuninstall

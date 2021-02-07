@@ -78,7 +78,7 @@ namespace ror_updater
                     throw new ArgumentOutOfRangeException();
             }
 
-            Dispatcher.BeginInvoke(new Action(() => { PageManager.Switch(new UpdateDonePage()); }));
+            PageManager.Switch(new UpdateDonePage());
         }
 
         private async Task InstallGame(IProgress<int> progress)
@@ -199,7 +199,7 @@ namespace ror_updater
             Thread.Sleep(100);
             var dest = $"{dir}/{file}";
             var path = dir.Replace(".", "");
-            var dlLink = $"{App.ServerUrl}/{App.Instance.SelectedBranch.Url}/{path}/{file}";
+            var dlLink = $"{App.Instance.CDNUrl}/{path}/{file}";
 
             try
             {
@@ -215,8 +215,7 @@ namespace ror_updater
                 SentrySdk.CaptureException(ex);
             }
         }
-
-
+        
         private class FileStatus
         {
             public PFileInfo File;

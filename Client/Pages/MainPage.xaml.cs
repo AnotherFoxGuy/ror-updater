@@ -54,7 +54,7 @@ namespace ror_updater
 
         private void button_next_Click(object sender, RoutedEventArgs e)
         {
-            App.Instance.SaveIni();
+            App.Instance.SaveSettings();
 
             PageManager.Switch(new ChoicePage());
         }
