@@ -7,6 +7,7 @@ project("Rigs of Rods Updater"
 
 # Set global .NET Framework version.
 set(CMAKE_DOTNET_TARGET_FRAMEWORK_VERSION "v4.8")
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(DOTNET_REF
     Microsoft.CSharp

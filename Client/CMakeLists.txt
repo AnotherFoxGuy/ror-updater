@@ -62,8 +62,6 @@ csharp_set_xaml_cs_properties(${XAML_FILES})
 csharp_set_windows_forms_properties(${FORM_FILES})
 
 set_property(SOURCE App.xaml PROPERTY VS_XAML_TYPE "ApplicationDefinition")
-set_property(SOURCE app.manifest PROPERTY VS_XAML_TYPE "ApplicationManifest")
-set_property(SOURCE Resources/ror.ico PROPERTY VS_XAML_TYPE "ApplicationIcon")
 
 # Set CLR assembly properties.
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -71,6 +69,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     VS_DOTNET_REFERENCES "${DOTNET_REF}"
     VS_PACKAGE_REFERENCES "${NUGET_PKGS}"
     VS_GLOBAL_ROOTNAMESPACE "ror_updater"
+    VS_CSHARP_GenerateManifests false
+    VS_CSHARP_ApplicationManifests "app.manifest"
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
