@@ -23,12 +23,12 @@ using System.Windows;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("Rigs of Rods Updater")]
-[assembly: AssemblyDescription("Rigs of Rods Installer/Updater for Windows")]
+[assembly: AssemblyTitle("@CMAKE_PROJECT_NAME@ - @PROJECT_NAME@")]
+[assembly: AssemblyDescription("@CMAKE_PROJECT_DESCRIPTION@")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Rigs of Rods Community")]
-[assembly: AssemblyProduct("ror-updater")]
-[assembly: AssemblyCopyright("Copyright © Rigs of Rods Community 2021")]
+[assembly: AssemblyProduct("@PROJECT_NAME@")]
+[assembly: AssemblyCopyright("Copyright © Rigs of Rods Community @YEAR@")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -69,5 +69,5 @@ using System.Windows;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("@CMAKE_PROJECT_VERSION@")]
+[assembly: AssemblyFileVersion("@CMAKE_PROJECT_VERSION@")]

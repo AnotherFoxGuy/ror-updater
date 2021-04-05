@@ -1,24 +1,32 @@
 # Setup project to use C# utilities.
 include(CSharpUtilities)
 
-set(BIN_NAME "ror-updater")
+project("ror-updater")
+
+set(ICON_FILE "${CMAKE_SOURCE_DIR}/Icons/ror.ico")
+set(SPLASH_IMG "${CMAKE_SOURCE_DIR}/Icons/ror_updater.jpg")
+string(TIMESTAMP YEAR "%Y")
+
+configure_file(${CMAKE_SOURCE_DIR}/AssemblyInfo.cs.in AssemblyInfo.cs @ONLY)
+configure_file(Properties/Resources.resx.in Resources.resx @ONLY)
 
 set(SOURCE_FILES
     ISwitchable.cs
     PageManager.cs
     Settings.cs
-
-    Properties/AssemblyInfo.cs
     Properties/Resources.Designer.cs
-    Properties/Resources.resx
+    
     Properties/Settings.Designer.cs
     Properties/Settings.settings
     Properties/app.manifest
 
-    Resources/ror.ico
+    ${ICON_FILE}
 
     ${CMAKE_SOURCE_DIR}/Shared/Utils.cs
     ${CMAKE_SOURCE_DIR}/Shared/SharedClasses.cs
+
+    ${CMAKE_CURRENT_BINARY_DIR}/AssemblyInfo.cs
+    ${CMAKE_CURRENT_BINARY_DIR}/Resources.resx
 )
 
 set(XAML_FILES
@@ -46,7 +54,7 @@ set(FORM_FILES
 )
 
 # Add executable project.
-add_executable(${BIN_NAME} ${SOURCE_FILES} ${XAML_FILES} ${FORM_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${XAML_FILES} ${FORM_FILES})
 
 # Set Windows Forms properties
 csharp_set_designer_cs_properties(${SOURCE_FILES})
@@ -58,18 +66,13 @@ set_property(SOURCE app.manifest PROPERTY VS_XAML_TYPE "ApplicationManifest")
 set_property(SOURCE Resources/ror.ico PROPERTY VS_XAML_TYPE "ApplicationIcon")
 
 # Set CLR assembly properties.
-set_target_properties(${BIN_NAME} PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
 	WIN32_EXECUTABLE TRUE
     VS_DOTNET_REFERENCES "${DOTNET_REF}"
     VS_PACKAGE_REFERENCES "${NUGET_PKGS}"
     VS_GLOBAL_ROOTNAMESPACE "ror_updater"
 )
 
-install(TARGETS ${BIN_NAME} RUNTIME DESTINATION .)
-install(CODE "
-  file(GET_RUNTIME_DEPENDENCIES
-  RESOLVED_DEPENDENCIES_VAR XD
-        EXECUTABLES $<TARGET_FILE:${BIN_NAME}>
-    )
-    message(\"\${XD}\")
-")
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
+#install(FILES ${PROJECT_NAME}.exe.config RUNTIME DESTINATION .)
+install(DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>/" DESTINATION . FILES_MATCHING PATTERN "*.dll")
