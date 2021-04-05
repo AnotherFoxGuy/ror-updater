@@ -17,15 +17,15 @@ namespace list_generator
             var cmd = new RootCommand
             {
                 new Argument<string>("path", "Path to files"),
-                new Option<string?>(new[] {"--branch", "-b"}, "The Branch name"),
+                new Option<string>(new[] {"--branch", "-b"}, "The Branch name"),
             };
 
-            cmd.Handler = CommandHandler.Create<string, string?, IConsole>(GenerateJsonInfo);
+            cmd.Handler = CommandHandler.Create<string, string, IConsole>(GenerateJsonInfo);
 
             return cmd.Invoke(args);
         }
 
-        static void GenerateJsonInfo(string path, string? branchname, IConsole console)
+        static void GenerateJsonInfo(string path, string branchname, IConsole console)
         {
             if (string.IsNullOrEmpty(branchname))
                 branchname = "Release";
